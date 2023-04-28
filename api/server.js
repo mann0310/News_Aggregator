@@ -8,10 +8,11 @@ import jwt from 'jsonwebtoken';
 import User from './models/User.js';
 import Comment from './models/Comment.js';
 import VotingRoutes from './VotingRoutes.js'
+import dotenv from 'dotenv';
 
-const secret = 'secret123';
+dotenv.config();
+
 const app = express();
-const BASE_URL = process.env.BASE_URL;
 
 app.use(cookieParser());
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -22,14 +23,14 @@ app.use(cors({
      credentials: true,
 }));
 
-await mongoose.connect('mongodb+srv://suyash:rjoa7zvue5mGQagd@cluster0.1u8c2l7.mongodb.net/newsAggregator', { useNewUrlParser: true, useUnifiedTopology: true, });
+await mongoose.connect(`${process.env.MONGO_DB_URI}`, { useNewUrlParser: true, useUnifiedTopology: true, });
 const db = mongoose.connection;
 db.on('error', console.log);
 
 app.use(VotingRoutes);
 
 function getUserFromToken(token){
-     const userInfo = jwt.verify(token, secret);
+     const userInfo = jwt.verify(token, process.env.SECRET);
      return User.findById(userInfo.id);
 }
 
@@ -46,7 +47,7 @@ app.post('/register', (req, res) => {
                     if (user2 == null) {
                          const user = new User({ email, username, password });
                          user.save().then(user => {
-                              jwt.sign({ id: user._id }, secret, (err, token) => {
+                              jwt.sign({ id: user._id }, process.env.SECRET, (err, token) => {
                                    if (err) {
                                         console.log(err);
                                         res.status(400).send("Invalid Credentials!");
@@ -108,7 +109,7 @@ app.get('/user', (req, res) => {
           console.log(err);
           res.sendStatus(500);
      });
-     const userInfo = jwt.verify(token, secret);
+     const userInfo = jwt.verify(token, process.env.SECRET);
 });
 
 app.post('/login', (req, res) => {
@@ -117,7 +118,7 @@ app.post('/login', (req, res) => {
           if (user && user.username) {
                const passOk = bcrypt.compareSync(password, user.password);
                if (passOk) {
-                    jwt.sign({ id: user._id }, secret, (err, token) => {
+                    jwt.sign({ id: user._id }, process.env.SECRET, (err, token) => {
                          console.log(token);
                          res.cookie('token', token).send();
                     });
